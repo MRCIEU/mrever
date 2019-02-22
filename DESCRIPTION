@@ -1,0 +1,13 @@
+Package: mrever
+Title: Query the MR-EvE graph database
+Version: 0.0.0.9000
+Authors@R: person("Gibran", "Hemani", email = "g.hemani@bristol.ac.uk", role = c("aut", "cre"))
+Description: Query the MR-EvE graph database
+Depends:
+  R (>= 3.4.2),
+  RNeo4j,
+  dplyr
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
+Suggests: testthat
