@@ -28,3 +28,23 @@ test_that("can extract instruments, multiple", {
 	expect_equal(length(unique(a$bgcidId)), 2)
 })
 
+test_that("can extract instruments, multiple", {
+	a <- get_instruments(c(2, 7))
+	expect_equal(length(unique(a$bgcidId)), 2)
+})
+
+test_that("mr looks sensible", {
+	a <- get_mr(2, 7)
+	expect_equal(all(names(a) %in% c("mr", "heterogeneity", "directional_pleiotropy")), TRUE)
+})
+
+test_that("mr-moe looks sensible", {
+	a <- get_mrmoe(2, 7)
+	expect_equal(nrow(a), 1)
+})
+
+test_that("mr-phewas looks sensible", {
+	a <- phewas(2)
+	expect_gt(nrow(a), 100)
+})
+

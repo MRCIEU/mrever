@@ -64,7 +64,6 @@ get_instruments <- function(id, graph = options()$eveneo4jg)
 	query <- paste0("match (v:VARIANT)-[i:INSTRUMENT]->(t:TRAIT) where t.bgcidId IN ['", paste(id, collapse="','"), "']  return v.variantId as variantId, v.chr as chr, v.pos as pos, v.ref as ref, v.alt as alt, t.bgcidId as bgcidId, t.unit as unit, ",
 		paste(paste0("i.", fields, " as ", fields), collapse=", ")
 	)
-	print(query)
 	return(cypher(graph, query))
 }
 
@@ -89,38 +88,86 @@ get_genassoc <- function(variant, id, graph = options()$eveneo4jg)
 		return v.variantId as variantId, v.chr as chr, v.pos as pos, v.ref as ref, v.alt as alt, t.bgcidId as bgcidId, t.unit as unit, ",
 		paste(paste0("i.", fields, " as ", fields), collapse=", ")
 	)
-	print(query)
 	return(cypher(graph, query))
 }
 
+#' Get MR estimates
+#'
+#' @param id1 <what param does>
+#' @param id2 <what param does>
+#' @param graph = options()$eveneo4jg <what param does>
+#'
+#' @export
+#' @return list
+get_mr <- function(id1, id2, graph = options()$eveneo4jg)
+{
+	l <- list()
+	query <- paste0("match (id1:TRAIT)-[m:MR]->(id2:TRAIT)
+	where id1.bgcidId IN ['", paste(id1, collapse="','"), "']
+	and id2.bgcidId IN ['", paste(id2, collapse="','"), "']
+	return id1.bgcidId as exposure, id2.bgcidId as outcome, m.method+' - '+m.selection as method, m.b as b, m.se as se, m.ci_low as ci_low, m.ci_upp as ci_upp, m.pval as pval, m.nsnp as nsnp, m.moescore as moescore"
+	)
+	l$mr <- cypher(graph, query)
 
+	query <- paste0("match (id1:TRAIT)-[m:MRHET]->(id2:TRAIT)
+	where id1.bgcidId IN ['", paste(id1, collapse="','"), "']
+	and id2.bgcidId IN ['", paste(id2, collapse="','"), "']
+	return id1.bgcidId as exposure, id2.bgcidId as outcome, m.method+' - '+m.selection as method, m.q as q, m.df as df, m.pval as pval"
+	)
+	l$heterogeneity <- cypher(graph, query)
 
+	query <- paste0("match (id1:TRAIT)-[m:MRINTERCEPT]->(id2:TRAIT)
+	where id1.bgcidId IN ['", paste(id1, collapse="','"), "']
+	and id2.bgcidId IN ['", paste(id2, collapse="','"), "']
+	return id1.bgcidId as exposure, id2.bgcidId as outcome, m.method+' - '+m.selection as method, m.b as b, m.se as se, m.pval as pval, m.nsnp as nsnp"
+	)
+	l$directional_pleiotropy <- cypher(graph, query)
 
-# Get trait-trait relationship
+	return(l)
+}
 
-# Phewas
+#' Get MR-MOE estimates
+#'
+#' @param id1 <what param does>
+#' @param id2 <what param does>
+#' @param graph = options()$eveneo4jg <what param does>
+#'
+#' @export
+#' @return data frame
+get_mrmoe <- function(id1, id2, graph = options()$eveneo4jg)
+{
+	query <- paste0("match (id1:TRAIT)-[m:MRMOE]->(id2:TRAIT)
+	where id1.bgcidId IN ['", paste(id1, collapse="','"), "']
+	and id2.bgcidId IN ['", paste(id2, collapse="','"), "']
+	return id1.bgcidId as exposure, id2.bgcidId as outcome, m.method+' - '+m.selection as method, m.b as b, m.se as se, m.ci_low as ci_low, m.ci_upp as ci_upp, m.pval as pval, m.nsnp as nsnp, m.moescore as moescore"
+	)
+	return(cypher(graph, query))
+}
 
-
-
-# graph <- startGraph("http://shark.epi.bris.ac.uk:8474/db/data", username="neo4j", password="123qwe")
-# qu <- "match (n:TRAIT) where n.trait = 'Body mass index' return n.trait"
-
-# qu <- "match (v:VARIANT)-[i:INSTRUMENT]->(t:TRAIT) where t.bgcidId='' return 
-# v.variantId, 
-# v.chr,
-# v.pos,
-# v.ref,
-# v.alt,
-# t.bgcidId,
-# i.beta,
-# i.se,
-# i.pval,
-# i.samplesize,
-# i.ncase,
-# i.ncontrol,
-# i.eaf
-# "
-
-# cypher(graph, qu)
-
-# qu <- "match (t:TRAIT) return keys(t)"
+#' Perform phewas
+#'
+#' <full description>
+#'
+#' @param id <what param does>
+#' @param direction="exposure" <what param does>
+#' @param graph = options()$eveneo4jg <what param does>
+#'
+#' @export
+#' @return data frame
+phewas <- function(id, direction="exposure", graph = options()$eveneo4jg)
+{
+	stopifnot(length(id)==1)
+	if(direction == "exposure")
+	{
+		query <- paste0("match (id2:TRAIT)<-[m:MRMOE]-(id1:TRAIT {bgcidId: '", id, "'})
+		return id1.bgcidId as exposure, id2.bgcidId as outcome, m.method+' - '+m.selection as method, m.b as b, m.se as se, m.ci_low as ci_low, m.ci_upp as ci_upp, m.pval as pval, m.nsnp as nsnp, m.moescore as moescore"
+		)
+	} else if(direction == "outcome") {
+		query <- paste0("match (id1:TRAIT)-[m:MRMOE]->(id2:TRAIT {bgcidId: '", id, "'})
+		return id1.bgcidId as exposure, id2.bgcidId as outcome, m.method+' - '+m.selection as method, m.b as b, m.se as se, m.ci_low as ci_low, m.ci_upp as ci_upp, m.pval as pval, m.nsnp as nsnp, m.moescore as moescore"
+		)
+	} else {
+		stop("Direction must be 'exposure' or 'outcome'")
+	}
+	return(cypher(graph, query))
+}
