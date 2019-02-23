@@ -10,12 +10,17 @@
 #' @return graph object
 connect <- function(url=NULL, username=NULL, password=NULL)
 {
-	graph <- RNeo4j::startGraph(
+	options(eveneo4jg = RNeo4j::startGraph(
 		url = ifelse(is.null(url), options()$eveneo4jurl, url),
 		username = ifelse(is.null(username), options()$eveneo4juser, username),
 		password = ifelse(is.null(password), options()$eveneo4jpw, password)
-	)
-	return(graph)
+	))
+	if(length(options()$eveneo4jg$version) == 1)
+	{
+		message("Connected to MR-EvE")
+	} else {
+		message("Failed to connect to MR-EvE")
+	}
 }
 
 
