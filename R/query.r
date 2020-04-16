@@ -35,7 +35,7 @@ connect <- function(url=NULL, username=NULL, password=NULL)
 #' @return dataframe
 get_traits <- function(id=NULL, graph = options()$eveneo4jg)
 {
-	fields <- c("author", "category", "consortium", "bgcidId", "note", "nsnp", "pmid", "population", "priority", "sample_size", "sd", "sex", "subcategory", "trait", "unit", "year")
+	fields <- c("author", "category", "consortium", "bgcidId", "note", "nsnp", "pmid", "population", "priority", "sample_size", "sd", "sex", "subcategory", "trait", "unit", "year", "ncase", "ncontrol")
 
 	if(is.null(id))
 	{
@@ -49,7 +49,7 @@ get_traits <- function(id=NULL, graph = options()$eveneo4jg)
 			paste0(paste0("t.", fields, " as ", fields), collapse=", ")
 		)
 	}
-	return(cypher(graph, query))
+	return(RNeo4j::cypher(graph, query))
 }
 
 
@@ -69,7 +69,7 @@ get_instruments <- function(id, graph = options()$eveneo4jg)
 	query <- paste0("match (v:VARIANT)-[i:INSTRUMENT]->(t:TRAIT) where t.bgcidId IN ['", paste(id, collapse="','"), "']  return v.variantId as variantId, v.chr as chr, v.pos as pos, v.ref as ref, v.alt as alt, t.bgcidId as bgcidId, t.unit as unit, ",
 		paste(paste0("i.", fields, " as ", fields), collapse=", ")
 	)
-	return(cypher(graph, query))
+	return(RNeo4j::cypher(graph, query))
 }
 
 
@@ -93,7 +93,7 @@ get_genassoc <- function(variant, id, graph = options()$eveneo4jg)
 		return v.variantId as variantId, v.chr as chr, v.pos as pos, v.ref as ref, v.alt as alt, t.bgcidId as bgcidId, t.unit as unit, ",
 		paste(paste0("i.", fields, " as ", fields), collapse=", ")
 	)
-	return(cypher(graph, query))
+	return(RNeo4j::cypher(graph, query))
 }
 
 #' Get MR estimates
@@ -112,21 +112,21 @@ get_mr <- function(id1, id2, graph = options()$eveneo4jg)
 	and id2.bgcidId IN ['", paste(id2, collapse="','"), "']
 	return id1.bgcidId as exposure, id2.bgcidId as outcome, m.method+' - '+m.selection as method, m.b as b, m.se as se, m.ci_low as ci_low, m.ci_upp as ci_upp, m.pval as pval, m.nsnp as nsnp, m.moescore as moescore"
 	)
-	l$mr <- cypher(graph, query)
+	l$mr <- RNeo4j::cypher(graph, query)
 
 	query <- paste0("match (id1:TRAIT)-[m:MRHET]->(id2:TRAIT)
 	where id1.bgcidId IN ['", paste(id1, collapse="','"), "']
 	and id2.bgcidId IN ['", paste(id2, collapse="','"), "']
 	return id1.bgcidId as exposure, id2.bgcidId as outcome, m.method+' - '+m.selection as method, m.q as q, m.df as df, m.pval as pval"
 	)
-	l$heterogeneity <- cypher(graph, query)
+	l$heterogeneity <- RNeo4j::cypher(graph, query)
 
 	query <- paste0("match (id1:TRAIT)-[m:MRINTERCEPT]->(id2:TRAIT)
 	where id1.bgcidId IN ['", paste(id1, collapse="','"), "']
 	and id2.bgcidId IN ['", paste(id2, collapse="','"), "']
 	return id1.bgcidId as exposure, id2.bgcidId as outcome, m.method+' - '+m.selection as method, m.b as b, m.se as se, m.pval as pval, m.nsnp as nsnp"
 	)
-	l$directional_pleiotropy <- cypher(graph, query)
+	l$directional_pleiotropy <- RNeo4j::cypher(graph, query)
 
 	return(l)
 }
@@ -146,7 +146,7 @@ get_mrmoe <- function(id1, id2, graph = options()$eveneo4jg)
 	and id2.bgcidId IN ['", paste(id2, collapse="','"), "']
 	return id1.bgcidId as exposure, id2.bgcidId as outcome, m.method+' - '+m.selection as method, m.b as b, m.se as se, m.ci_low as ci_low, m.ci_upp as ci_upp, m.pval as pval, m.nsnp as nsnp, m.moescore as moescore"
 	)
-	return(cypher(graph, query))
+	return(RNeo4j::cypher(graph, query))
 }
 
 #' Perform phewas
@@ -174,5 +174,24 @@ phewas <- function(id, direction="exposure", graph = options()$eveneo4jg)
 	} else {
 		stop("Direction must be 'exposure' or 'outcome'")
 	}
-	return(cypher(graph, query))
+	return(RNeo4j::cypher(graph, query))
 }
+
+
+genassocscan<- function(variant, pval=NULL, graph = options()$eveneo4jg)
+{
+	fields <- c("beta", "se", "pval", "eaf", "samplesize", "ncase", "ncontrol")
+	pvalquery <- ifelse(is.null(pval), "", 
+		paste0("and i.pval < ", pval, " ")
+	)
+	query <- paste0("match (v:VARIANT)-[i:GENASSOC]->(t:TRAIT)
+		where v.variantId IN ['", paste(variant, collapse="','"), "']",
+		pvalquery,
+		"return v.variantId as variantId, v.chr as chr, v.pos as pos, v.ref as ref, v.alt as alt, t.bgcidId as bgcidId, t.unit as unit, ",
+		paste(paste0("i.", fields, " as ", fields), collapse=", ")
+	)
+	return(RNeo4j::cypher(graph, query))
+}
+
+
+
