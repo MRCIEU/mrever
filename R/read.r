@@ -44,3 +44,20 @@ readml <- function(filename, ao, format="TwoSampleMR")
 		return(a)
 	}
 }
+
+
+#' Write as csv for neo4j
+#'
+#' @param x Data frame
+#' @param basename Filename to write to. Should be gzip
+#' @param header Whether to include header. If so, it is written as a separate file. Default=FALSE
+#'
+#' @export
+#' @return NULL
+write_out <- function(x, basename, header=FALSE)
+{
+	g <- gzfile(basename, "w")
+	write.table(x, g, row.names=FALSE, col.names=FALSE, na="", sep=",")
+	close(g)
+	if(header) write.table(x[0,], file=paste0(basename, "_header.csv"), row.names=FALSE, col.names=TRUE, sep=",")
+}
