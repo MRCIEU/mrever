@@ -13,8 +13,7 @@ readml <- function(filename, ao, format="TwoSampleMR")
 		header=FALSE,
 		stringsAsFactors=FALSE
 	) %>% as_tibble(.)
-	names(a) <- c("SNP", "chr", "pos", "effect_allele", "other_allele", "beta", "se", "pval", "samplesize", "eaf", "proxy_chr", "proxy_pos", "proxy_rsid", "id", "instrument")
-	a$pval <- 10^-a$pval
+	names(a) <- c("id", "SNP", "chr", "pos", "other_allele", "effect_allele", "beta", "se", "pval", "eaf", "samplesize", "ncase", "proxy_rsid", "instrument")
 
 	# Fill in missing info
 	id <- unique(a$id)
@@ -24,7 +23,7 @@ readml <- function(filename, ao, format="TwoSampleMR")
 
 	a$samplesize[is.na(a$samplesize)] <- r$sample_size
 	a$units <- r$unit
-	a$ncase <- r$ncase
+	a$ncase[is.na(a$ncase)] <- r$ncase
 	a$ncontrol <- r$ncontrol
 	a$Phenotype <- r$trait
 	a$units[is.na(a$units)] <- "unknown"
