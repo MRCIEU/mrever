@@ -1,0 +1,85 @@
+---
+title: "Determing the analyses to run for MR-EvE"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{setup_inventory}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(mrever)
+```
+
+The MR-EvE surface of results needs to be generated on a set of data, and then updated as new analyses come in. Ideally each ID will be treated as a separate batch to enable simple parallelisation. Further parallelisation can be performed within the batch using multi-core functions when necessary.
+
+To avoid having to re-run everything each time, we would like to be able to determine what new analyses need to be run given knowledge of the existing list of dataset IDs, and a list of new dataset IDs. 
+
+For MR-EvE our objective is to ultimately have a test of every trait against every other trait (bi-directional exhaustive MR).
+
+## Initialising
+
+When running for the first time, if there are $N$ traits, we will perform $N^2 - N$ analyses (excluding the diagonal). This can be split into $N$ batches. Each batch performs only the tests in which its ID is the exposure. For example, if there are 10 IDs `1,2,...,10` then here are the analyses that ID `1` will run:
+
+```{r}
+determine_analyses(id=1, idlist=1:10)
+```
+
+and here are the ones that ID `2` will run:
+
+```{r}
+determine_analyses(id=2, idlist=1:10)
+```
+
+and so on. We can see we get the right number of tests using this approach. Expected number of tests:
+
+```{r}
+10 * 10 - 10
+```
+
+Number of tests:
+
+```{r}
+tests <- lapply(1:10, function(x) determine_analyses(x, 1:10)) %>% dplyr::bind_rows()
+nrow(tests)
+length(unique(tests$id))
+```
+
+## Adding new datasets
+
+Once the initial space is created, adding new datasets is a bit more complicated. If we have $M$ new analyses, ideally we would only run $M$ new batches. If we only ran the exposure analses for each of the $M$ IDs then we would get the estimate of every $M$ on every $M + N$, but we would not get any estimates of $N$ on $M$. So we actually need to run 
+
+- Exposure of $M$ on $M + N$
+- Exposure of $N$ on $M$
+
+For example, now we add two new IDs `11, 12`.
+
+
+```{r}
+determine_analyses(id=11, idlist=1:10, newidlist=11:12) %>% as.data.frame
+```
+
+We now expect the following number of tests in total:
+
+```{r}
+12 * 12 - 12
+```
+
+Check:
+
+```{r}
+tests1 <- lapply(1:10, function(x) determine_analyses(x, 1:10)) %>% dplyr::bind_rows()
+tests2 <- lapply(11:12, function(x) determine_analyses(x, 1:10, 11:12)) %>% dplyr::bind_rows()
+tests <- dplyr::bind_rows(tests1, tests2)
+nrow(tests)
+length(unique(tests$id))
+```
+
+

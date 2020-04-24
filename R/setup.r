@@ -1,9 +1,14 @@
-#' Generate random string
+## NOTE
+## THIS SET OF FUNCTIONS NOT CURRENTLY IN USE
+## THEY WERE GENERATED AS AN EXPERIMENT TO TRY TO SEE IF WE CAN MAKE AN INVENTORY OF ALL TESTS LOCALLY
+## CURRENTLY NOT USING IT
+
+#' Generate random string(s)
 #'
-#' @param n=1 <what param does>
+#' @param n How many strings to create (default = 1)
 #'
 #' @export
-#' @return
+#' @return Vector of random strings
 random_string <- function(n=1)
 {
 	a <- do.call(paste0, replicate(2, sample(LETTERS, n, TRUE), FALSE))
@@ -32,13 +37,13 @@ getcon <- function(path=NULL)
 
 #' Initial creation of inventory
 #'
-#' @param path=NULL <what param does>
+#' @param path Path to sqlite filename
 #'
 #' @export
-#' @return
+#' @return NULL
 setup_inventory <- function(path=NULL)
 {
-	con <- getcon(NULL)
+	con <- getcon(path)
 
 
 	"
@@ -54,9 +59,9 @@ setup_inventory <- function(path=NULL)
 	neo4j_date DATETIME
 	);
 	" -> query1
-	out <- dbSendQuery(con, query1, append=TRUE)
+	out <- RSQLite::dbSendQuery(con, query1, append=TRUE)
 	print(out)
-	dbClearResult(out)
+	RSQLite::dbClearResult(out)
 
 
 	"
@@ -71,14 +76,14 @@ setup_inventory <- function(path=NULL)
 	creation_date DATETIME,
 	trait_a_date DATETIME,
 	trait_b_date DATETIME,
-	neo4j_date DATETIME
+	neo4j_date DATETIME,
 	FOREIGN KEY(slice) REFERENCES slices(slice)
 	);
 	" -> query2
-	out <- dbSendQuery(con, query2, append=TRUE)
+	out <- RSQLite::dbSendQuery(con, query2, append=TRUE)
 	print(out)
-	dbClearResult(out)
-	dbDisconnect(con)
+	RSQLite::dbClearResult(out)
+	RSQLite::dbDisconnect(con)
 }
 
 
@@ -97,7 +102,7 @@ check_candidate_ids <- function(idlist, datadir, required_files)
 	param$path <- file.path(param$dir, param$id, param$required_files)
 	param$present <- file.exists(param$path)
 	print(head(param))
-	check <- group_by(param, id) %>% summarise(ok = all(present)) %>% filter(ok)
+	check <- group_by(param, id) %>% dplyr::summarise(ok = all(present)) %>% dplyr::filter(ok)
 	print(head(check))
 	return(check$id)
 }
@@ -126,31 +131,31 @@ initialise_analysis <- function(candidate, description)
 
 	message("Checking new candidates")
 	con <- getcon()
-	inventory <- tbl(con, "inventory")
+	inventory <- dplyr::tbl(con, "inventory")
 
 	qu <- paste(candidate$trait_a, candidate$trait_b, candidate$method)
 
 	out <- inventory %>% 
-		mutate(key = paste(trait_a, trait_b, method)) %>% 
-		filter(key %in% qu) %>% 
-		select(key) %>% 
-		collect()
+		dplyr::mutate(key = paste(trait_a, trait_b, method)) %>% 
+		dplyr::filter(key %in% qu) %>% 
+		dplyr::select(key) %>% 
+		dplyr::collect()
 	candidate <- candidate[!qu %in% out$key,]
 	message(nrow(candidate), " candidates are new")
 	message("Creating slice: ", slice)
 
-	slice <- data_frame(
+	slice <- dplyr::tibble(
 		slice=slice,
 		description=description,
 		
 	)
 
-	lastkey <- inventory %>% summarise(m = max(objname)) %>% collect()
+	lastkey <- inventory %>% dplyr::summarise(m = max(objname)) %>% dplyr::collect()
 	candidate$objname <- 1:nrow(candidate) + lastkey$m
 	candidate$slice <- slice
 	candidate$status <- "initialised"
-	db_insert_into(con, "inventory", candidate)
-	dbReadTable(con, "inventory")
+	dplyr::db_insert_into(con, "inventory", candidate)
+	RSQLite::dbReadTable(con, "inventory")
 	return(candidate)
 }
 
@@ -158,8 +163,8 @@ initialise_analysis <- function(candidate, description)
 get_analyses <- function(status)
 {
 	con <- getcon()
-	inventory <- tbl(con, "inventory")
+	inventory <- dplyr::tbl(con, "inventory")
 	out <- inventory %>%
-		filter(status == status)
+		dplyr::filter(status == status)
 	return(out)
 }

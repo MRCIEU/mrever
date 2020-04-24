@@ -13,6 +13,26 @@ determine_analyses <- function(id, idlist, newidlist=NULL, what="eve")
 {
 	idlist <- unique(idlist)
 	newidlist <- unique(newidlist)
+	if(!is.null(newidlist))
+	{
+		if(any(idlist %in% newidlist))
+		{
+			stop("idlist and newidlist must be distinct")
+		}
+		if(id %in% idlist)
+		{
+			stop("id must be in newidlist")
+		}
+		if(!id %in% newidlist)
+		{
+			stop("id must be in newidlist")
+		}
+	} else {
+		if(!id %in% idlist)
+		{
+			stop("id must be in idlist when newidlist not provided")
+		}
+	}
 
 	if(what == "phewas")
 	{
@@ -21,9 +41,9 @@ determine_analyses <- function(id, idlist, newidlist=NULL, what="eve")
 			idlist <- unique(c(idlist, newidlist))
 		}
 		idlist <- idlist[!idlist %in% id]
-		param <- bind_rows(
-			tibble(exposure=id, outcome=idlist),
-			tibble(exposure=idlist, outcome=id)
+		param <- dplyr::bind_rows(
+			dplyr::tibble(exposure=id, outcome=idlist),
+			dplyr::tibble(exposure=idlist, outcome=id)
 		)
 	}
 
@@ -34,7 +54,7 @@ determine_analyses <- function(id, idlist, newidlist=NULL, what="eve")
 			idlist <- unique(c(idlist, newidlist))
 		}
 		idlist <- idlist[!idlist %in% id]
-		param <- tibble(exposure=id, outcome=idlist)
+		param <- dplyr::tibble(exposure=id, outcome=idlist)
 	}
 
 	if(what == "outcome")
@@ -44,7 +64,7 @@ determine_analyses <- function(id, idlist, newidlist=NULL, what="eve")
 			idlist <- unique(c(idlist, newidlist))
 		}
 		idlist <- idlist[!idlist %in% id]
-		param <- tibble(exposure=idlist, outcome=id)
+		param <- dplyr::tibble(exposure=idlist, outcome=id)
 	}
 
 
@@ -54,18 +74,18 @@ determine_analyses <- function(id, idlist, newidlist=NULL, what="eve")
 		{
 			idlist <- idlist[!idlist %in% id]
 			newidlist <- newidlist[!newidlist %in% id]
-			param <- bind_rows(
-				tibble(exposure=id, outcome=idlist),
-				tibble(exposure=idlist, outcome=id),
-				tibble(exposure=id, outcome=newidlist)
+			param <- dplyr::bind_rows(
+				dplyr::tibble(exposure=id, outcome=idlist),
+				dplyr::tibble(exposure=id, outcome=newidlist),
+				dplyr::tibble(exposure=idlist, outcome=id)
 			)
 		} else {
 			idlist <- idlist[!idlist %in% id]
-			param <- bind_rows(
-				tibble(exposure=id, outcome=idlist)
+			param <- dplyr::bind_rows(
+				dplyr::tibble(exposure=id, outcome=idlist)
 			)
 		}
 	}
-	param$id <- paste0(param$exposure, ".", param$outcome)
+	param$id <- paste0(param$exposure, " -> ", param$outcome)
 	return(param)
 }
