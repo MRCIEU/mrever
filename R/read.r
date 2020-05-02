@@ -17,7 +17,9 @@ readml <- function(filename, ao, format="TwoSampleMR")
 
 	# Fill in missing info
 	id <- unique(a$id)
-	r <- ao[ao$id == id, ]
+	r <- ao[tolower(ao$id) == tolower(id), ]
+	id <- r$id
+	a$id <- id
 
 	stopifnot(nrow(r) == 1)
 
