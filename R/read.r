@@ -6,7 +6,10 @@
 #' @return
 readml <- function(filename, ao, format="TwoSampleMR")
 {
-	require(TwoSampleMR)
+	if(format == "TwoSampleMR")
+	{
+		require(TwoSampleMR)
+	}
 	require(dplyr)
 	a <- read.csv(
 		filename, 
