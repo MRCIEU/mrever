@@ -110,16 +110,21 @@ write_split <- function(obj, splitsize, prefix, id1, id1name, id2=NULL, id2name=
 #' @param id2=NULL <what param does>
 #' @param id2name=NULL <what param does>
 #' @param col.names Whether to write the header line
+#' @param headeronly Whether to only write the header
 #'
 #' @export
 #' @return
-write_simple <- function(obj, filename, id1, id1name, id2=NULL, id2name=NULL, col.names=TRUE)
+write_simple <- function(obj, filename, id1, id1name, id2=NULL, id2name=NULL, col.names=TRUE, headeronly=FALSE)
 {
 	if(is.null(id2))
 	{
 		temp <- modify_node_headers_for_neo4j(obj, id1, id1name)
 	} else {
 		temp <- modify_rel_headers_for_neo4j(obj, id1, id1name, id2, id2name)
+	}
+	if(headeronly)
+	{
+		temp <- temp[0,]
 	}
 	gz1 <- gzfile(filename, "w")
 	write.table(temp, file=gz1, row.names=FALSE, na="", sep=",", col.names=col.names)
