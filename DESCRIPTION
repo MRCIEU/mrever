@@ -6,7 +6,6 @@ Description: Query the MR-EvE graph database
 Depends:
 	R (>= 3.4.2)
 Imports:
-	RNeo4j,
 	dplyr,
 	DBI,
 	RSQLite,
